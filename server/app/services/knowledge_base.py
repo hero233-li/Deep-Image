@@ -15,6 +15,7 @@ KB_DIR = BASE_DIR / "kb_store"
 KB_DIR.mkdir(exist_ok=True)
 
 _embedder = None
+_reranker = None
 _collection = None
 
 
@@ -26,6 +27,17 @@ def _get_embedder():
         logger.info("Loading embedding model %s ...", model_name)
         _embedder = SentenceTransformer(model_name)
     return _embedder
+
+
+def _get_reranker():
+    """BGE-Reranker：对候选结果重排序，提升检索精度"""
+    global _reranker
+    if _reranker is None:
+        from sentence_transformers import CrossEncoder
+        model_name = os.getenv("KB_RERANK_MODEL", "BAAI/bge-reranker-v2-m3")
+        logger.info("Loading reranker model %s ...", model_name)
+        _reranker = CrossEncoder(model_name)
+    return _reranker
 
 
 def _get_collection():
@@ -116,43 +128,58 @@ def index_questions(questions: list[dict], subject: str = "", source: str = "") 
     return len(ids)
 
 
-def search_similar(text: str, top_k: int = 5, subject: str = "") -> list[dict]:
-    """搜索最相似的题目"""
+def search_similar(text: str, top_k: int = 5, subject: str = "", use_rerank: bool = True) -> list[dict]:
+    """
+    两阶段检索：
+    Stage 1: BGE-M3 embedding → ChromaDB 粗排 top-20
+    Stage 2: BGE-Reranker-v2-m3 精排 → 返回 top_k
+    """
     model = _get_embedder()
     collection = _get_collection()
 
-    query_embedding = model.encode(
-        [text],
-        normalize_embeddings=True,
-    )
+    # Stage 1: 粗排
+    query_embedding = model.encode([text], normalize_embeddings=True)
 
     where = None
     if subject:
         where = {"subject": subject}
 
+    n_candidates = max(top_k * 4, 20)
+    if collection.count() < n_candidates:
+        n_candidates = collection.count()
+
     results = collection.query(
         query_embeddings=query_embedding.tolist(),
-        n_results=top_k,
+        n_results=n_candidates,
         where=where,
         include=["documents", "metadatas", "distances"],
     )
 
-    matches = []
+    candidates = []
     if results["ids"] and results["ids"][0]:
         for i in range(len(results["ids"][0])):
-            matches.append({
+            candidates.append({
                 "id": results["ids"][0][i],
                 "text": results["documents"][0][i] if results["documents"] else "",
                 "metadata": results["metadatas"][0][i] if results["metadatas"] else {},
-                "score": 1 - results["distances"][0][i],  # cosine → similarity
+                "score": 1 - results["distances"][0][i],
             })
 
-    return matches
+    # Stage 2: Reranker 精排
+    if use_rerank and len(candidates) > top_k:
+        reranker = _get_reranker()
+        pairs = [(text, c["text"]) for c in candidates]
+        rerank_scores = reranker.predict(pairs, batch_size=16, show_progress_bar=False)
+        for i, c in enumerate(candidates):
+            c["rerank_score"] = float(rerank_scores[i])
+        candidates.sort(key=lambda x: x["rerank_score"], reverse=True)
+
+    return candidates[:top_k]
 
 
-def search_by_image_text(vision_result: str, subject: str = "", top_k: int = 5) -> list[dict]:
-    """用豆包识别结果搜索知识库"""
-    return search_similar(vision_result, top_k, subject)
+def search_by_image_text(vision_result: str, subject: str = "", top_k: int = 5, use_rerank: bool = True) -> list[dict]:
+    """用豆包识别结果搜索知识库，默认开启 Reranker 重排"""
+    return search_similar(vision_result, top_k, subject, use_rerank)
 
 
 def get_kb_stats() -> dict:
@@ -162,6 +189,8 @@ def get_kb_stats() -> dict:
     return {
         "total_questions": count,
         "store_path": str(KB_DIR),
+        "embed_model": os.getenv("KB_EMBED_MODEL", "BAAI/bge-m3"),
+        "rerank_model": os.getenv("KB_RERANK_MODEL", "BAAI/bge-reranker-v2-m3"),
     }
 
 

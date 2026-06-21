@@ -15,6 +15,7 @@ class SearchRequest(BaseModel):
     text: str
     subject: str = ""
     top_k: int = 5
+    use_rerank: bool = True
 
 
 @router.post("/kb/upload-pdf")
@@ -49,8 +50,8 @@ async def upload_pdf(file: UploadFile = File(...), subject: str = Form("考研�
 @router.post("/kb/search")
 async def search_kb(req: SearchRequest):
     """用文本搜索知识库中的相似题目"""
-    matches = kb.search_similar(req.text, req.top_k, req.subject)
-    return {"matches": matches, "query": req.text[:200]}
+    matches = kb.search_similar(req.text, req.top_k, req.subject, req.use_rerank)
+    return {"matches": matches, "query": req.text[:200], "rerank": req.use_rerank}
 
 
 @router.get("/kb/stats")
