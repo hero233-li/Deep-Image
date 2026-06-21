@@ -1,0 +1,13 @@
+.env
+data.db
+uploads/*
+!uploads/.gitkeep
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+.idea/
+*.png
+*.jpg
+*.pdf
+!static/**/*.png

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep-Image · 考研助手</title>
+<link rel="stylesheet" href="/css/style.css">
+<script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]}}</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><div class="brand-mark">D</div><div>Deep-Image Space</div></div>
+  <div class="top-actions">
+    <span class="status" id="healthStatus"><span class="status-dot"></span><span id="healthText">检测后端中</span></span>
+    <button class="ghost-btn" onclick="showModeView()">模式选择</button>
+    <button class="ghost-btn" id="healthCheckBtn" onclick="checkBackend()">重新检测</button>
+  </div>
+</header>
+
+<div class="health-banner" id="healthBanner"></div>
+
+<!-- 模式选择 -->
+<section class="view active" id="modeView">
+  <div class="container">
+    <div class="hero">
+      <div class="eyebrow">智能题目工作台</div>
+      <h1>选择你的 <span>分析模式</span></h1>
+      <p>先选场景，再进入对应的题目空间。</p>
+    </div>
+    <div class="mode-grid">
+      <button class="mode-card" onclick="enterMode('exam')">
+        <div><div class="card-icon">研</div><h2>考研助手</h2><p>上传题目图片 → 豆包识别 → 还原题目 → DeepSeek 解题，全流程保留在数据库。</p></div>
+        <span class="primary-btn">开始使用</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- 学科空间 -->
+<section class="view" id="spaceView">
+  <div class="container">
+    <div class="space-header">
+      <div class="space-title"><h1 id="spaceTitle">考研 Space</h1><p id="spaceSubtitle">把截图、识别、追问和错题沉淀放在同一个流程里。</p></div>
+      <button class="ghost-btn" onclick="showModeView()">返回模式选择</button>
+    </div>
+    <div class="hero" style="padding-top:18px">
+      <div class="eyebrow" id="spaceEyebrow">更懂你的考研复盘</div>
+      <h1 id="spaceHero">欢迎来到 <span>Deep-Image 考研 Space</span></h1>
+      <p>选择学科与功能入口，开始整理你的题目。</p>
+    </div>
+    <div class="subject-tabs" id="subjectTabs"></div>
+    <div class="feature-grid">
+      <button class="feature-card" onclick="openWrongBook()"><div><div class="card-icon">题</div><h3>错题集</h3><p>上传一道题，保存识别结果，并继续和 DeepSeek 多轮讨论。</p></div><span class="primary-btn">立即进入</span></button>
+      <button class="feature-card" onclick="openWrongBook()"><div><div class="card-icon">识</div><h3>图片识别</h3><p>先看豆包对图片内容的结构化识别结果，再决定怎么追问。</p></div><span class="primary-btn">开始识别</span></button>
+      <button class="feature-card" onclick="openWrongBook()"><div><div class="card-icon">问</div><h3>DeepSeek 答疑</h3><p>围绕同一道题持续追问，保留上下文和数据库记录。</p></div><span class="primary-btn">进入对话</span></button>
+      <button class="feature-card" onclick="openWrongBook()"><div><div class="card-icon">库</div><h3>题目记录</h3><p>从数据库读取历史题目，继续查看识别内容和对话。</p></div><span class="primary-btn">查看记录</span></button>
+    </div>
+  </div>
+</section>
+
+<!-- 错题集 -->
+<section class="view" id="questionView">
+  <div class="container">
+    <div class="space-header">
+      <div class="space-title"><h1 id="questionTitle">错题集</h1><p>先上传题目图片，点击豆包识别，再围绕这道题继续沟通。</p></div>
+      <div class="select-row">
+        <button class="ghost-btn" onclick="showSpaceView()">首页</button>
+        <select id="modelSelect"><option value="doubao">豆包 Vision</option><option value="kimi">Kimi Vision</option><option value="deepseek">DeepSeek Vision</option></select>
+        <select id="subjectSelect"></select>
+      </div>
+    </div>
+    <div class="question-layout">
+      <aside class="panel side-panel">
+        <h2>题目列表</h2>
+        <div class="notice" id="recordNotice">从数据库读取历史题目。</div>
+        <div class="jump-row"><input id="jumpInput" placeholder="输入题号"><button class="primary-btn" onclick="jumpQuestion()">跳转</button></div>
+        <button class="ghost-btn" style="width:100%;margin-bottom:12px" onclick="newQuestion()">新建题目</button>
+        <div class="question-list" id="questionList"></div>
+      </aside>
+      <main class="panel main-panel">
+        <div class="question-toolbar">
+          <h2 id="currentQuestionLabel">第 1 题</h2>
+          <div class="select-row">
+            <div class="loading" id="loading"><span class="spinner"></span><span id="loadingText">处理中</span></div>
+            <button class="ghost-btn" onclick="exportPdf()" title="下载为PDF">下载PDF</button>
+          </div>
+        </div>
+        <div class="upload-zone" id="dropZone">
+          <div>
+            <h3>上传一张题目图片</h3>
+            <p>点击这里选择图片，也可以拖拽或直接粘贴截图。选好图片后，再点击"豆包识别"。</p>
+            <input type="file" id="fileInput" accept="image/*" style="display:none">
+          </div>
+        </div>
+        <div class="preview-card" id="previewCard">
+          <div class="preview-head">
+            <strong id="fileName">题目图片</strong>
+            <div class="select-row">
+              <button class="ghost-btn" onclick="chooseImage()">更换图片</button>
+              <button class="ghost-btn" id="refreshVisionBtn" onclick="recognizeImage(true)" style="display:none">重新识别</button>
+              <button class="primary-btn" id="visionBtn" onclick="recognizeImage(false)">豆包识别</button>
+            </div>
+          </div>
+          <img class="preview-img" id="previewImg" alt="题目图片预览">
+        </div>
+
+        <!-- 豆包识别结果 (可折叠) -->
+        <div class="section-title" onclick="toggleVision()">
+          <span class="arrow" id="visionArrow">▼</span> 豆包识别结果
+          <span class="pill" id="visionBadge" style="display:none"></span>
+          <span class="spacer"></span>
+          <button class="copy-btn" id="copyVisionBtn" onclick="event.stopPropagation();copyVisionResult()" style="display:none">复制</button>
+        </div>
+        <div class="result-block empty" id="visionBlock">识别结果会保存在数据库里，并出现在这里。</div>
+
+        <!-- 还原按钮 + 还原结果 (可折叠) -->
+        <div class="select-row" style="margin-top:8px">
+          <button class="primary-btn" id="reconstructBtn" onclick="reconstructProblem(false)" style="display:none">还原题目</button>
+          <button class="ghost-btn" id="reRefreshBtn" onclick="reconstructProblem(true)" style="display:none">重新还原</button>
+          <span class="pill hit" id="reconstructBadge" style="display:none"></span>
+          <span class="spacer"></span>
+          <button class="copy-btn" id="copyReconstructBtn" onclick="copyReconstruct()" style="display:none">复制</button>
+        </div>
+        <div class="section-title" id="reconstructTitle" style="display:none" onclick="toggleReconstruct()">
+          <span class="arrow" id="reconstructArrow">▼</span> 还原结果（请确认是否与原题一致）
+        </div>
+        <div class="graph-panel" id="reconstructGraph" style="display:none"></div>
+        <div class="result-block" id="reconstructBlock" style="display:none"></div>
+
+        <div class="chat-box">
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="composer">
+            <button class="attach-btn" onclick="chooseImage()" title="上传图片">+</button>
+            <textarea id="chatInput" rows="1" placeholder="根据这道题继续问 DeepSeek..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+            <button class="primary-btn" id="sendBtn" onclick="sendMessage()">发送</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<div class="image-modal" id="imageModal" aria-hidden="true">
+  <button class="modal-close" onclick="closeImageModal()" aria-label="关闭">×</button>
+  <img id="modalImg" alt="放大预览">
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
