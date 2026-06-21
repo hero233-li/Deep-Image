@@ -74,6 +74,8 @@
       <aside class="panel side-panel">
         <h2>题目列表</h2>
         <div class="notice" id="recordNotice">从数据库读取历史题目。</div>
+        <div class="notice" id="kbStatus" style="display:none;background:#e6f7ec;border-color:#a3d9b2;color:#1a6d3e;cursor:pointer" onclick="document.getElementById('kbUpload').click()" title="点击上传PDF扩充知识库">知识库加载中</div>
+        <input type="file" id="kbUpload" accept=".pdf" style="display:none" onchange="uploadKbPdf(this.files[0])">
         <div class="jump-row"><input id="jumpInput" placeholder="输入题号"><button class="primary-btn" onclick="jumpQuestion()">跳转</button></div>
         <button class="ghost-btn" style="width:100%;margin-bottom:12px" onclick="newQuestion()">新建题目</button>
         <div class="question-list" id="questionList"></div>

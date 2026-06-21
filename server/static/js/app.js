@@ -297,7 +297,37 @@ async function loadConversations(){
     });
     $('recordNotice').textContent='已从数据库读取 ' + state.records.length + ' 条记录。';
     renderQuestionList();
+    loadKbStats();
   }catch(e){$('recordNotice').textContent='读取数据库失败：' + e.message}
+}
+
+window.uploadKbPdf = async function(file){
+  if(!file) return;
+  if(!requireBackend()) return;
+  setLoading(true, '正在处理PDF并建立索引...');
+  try{
+    var fd=new FormData();
+    fd.append('file', file);
+    fd.append('subject', $('subjectSelect').value || '考研数学');
+    var resp=await fetch(API + '/api/kb/upload-pdf', {method:'POST', body:fd});
+    if(!resp.ok) throw new Error(await resp.text());
+    var data=await resp.json();
+    alert('PDF入库完成：提取 ' + data.questions_extracted + ' 题，索引 ' + data.questions_indexed + ' 题');
+    loadKbStats();
+  }catch(e){alert('PDF入库失败：'+e.message)}
+  finally{setLoading(false)}
+};
+
+async function loadKbStats(){
+  try{
+    var resp=await fetch(API + '/api/kb/stats');
+    if(!resp.ok) return;
+    var data=await resp.json();
+    if(data.total_questions>0){
+      $('kbStatus').textContent='知识库：'+data.total_questions+'题';
+      $('kbStatus').style.display='inline-flex';
+    }
+  }catch(e){}
 }
 
 function renderQuestionList(){

@@ -105,12 +105,23 @@ async def vision_only(req: VisionRequest):
             f"hash={image_hash[:12]} cache={from_cache} force={req.force_refresh}",
             vision_result[:200])
 
+        # 搜索知识库
+        kb_matches = []
+        try:
+            from app.services.knowledge_base import search_by_image_text, get_kb_stats
+            stats = get_kb_stats()
+            if stats["total_questions"] > 0:
+                kb_matches = search_by_image_text(vision_result, req.subject, top_k=3)
+        except Exception as e:
+            logger.warning("KB search failed: %s", e)
+
         return {
             "vision_result": vision_result,
             "from_cache": from_cache,
             "conversation_id": conversation_id,
             "deduped": bool(existing_conversation),
             "image_base64": req.image_base64,
+            "kb_matches": kb_matches,
         }
     except Exception as e:
         dur = int((time.time() - t0) * 1000)

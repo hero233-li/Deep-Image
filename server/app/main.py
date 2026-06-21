@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from app.api import upload, analysis, models_info, update, history
+from app.api import upload, analysis, models_info, update, history, knowledge
 from app.models.database import init_db
 from app.models.conversation import init_conversations_table
 from app.models.logs import init_logs_table, add_log
@@ -74,6 +74,7 @@ app.include_router(analysis.router, prefix="/api", tags=["analysis"])
 app.include_router(models_info.router, prefix="/api", tags=["models"])
 app.include_router(update.router, prefix="/api", tags=["update"])
 app.include_router(history.router, prefix="/api", tags=["history"])
+app.include_router(knowledge.router, prefix="/api", tags=["knowledge"])
 
 
 STATIC_DIR.mkdir(exist_ok=True)
