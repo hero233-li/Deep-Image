@@ -55,6 +55,40 @@
       <button class="feature-card" onclick="openWrongBook()"><div><div class="card-icon">识</div><h3>图片识别</h3><p>先看豆包对图片内容的结构化识别结果，再决定怎么追问。</p></div><span class="primary-btn">开始识别</span></button>
       <button class="feature-card" onclick="openWrongBook()"><div><div class="card-icon">问</div><h3>DeepSeek 答疑</h3><p>围绕同一道题持续追问，保留上下文和数据库记录。</p></div><span class="primary-btn">进入对话</span></button>
       <button class="feature-card" onclick="openWrongBook()"><div><div class="card-icon">库</div><h3>题目记录</h3><p>从数据库读取历史题目，继续查看识别内容和对话。</p></div><span class="primary-btn">查看记录</span></button>
+      <button class="feature-card" onclick="openKbView()"><div><div class="card-icon">K</div><h3>知识库</h3><p>上传PDF扩充题库，BGE-M3向量检索，管理已索引内容。</p></div><span class="primary-btn">管理知识库</span></button>
+    </div>
+  </div>
+</section>
+
+<!-- 知识库管理 -->
+<section class="view" id="kbView">
+  <div class="container">
+    <div class="space-header">
+      <div class="space-title"><h1>知识库管理</h1><p>上传 PDF 自动提取题目，BGE-M3 本地向量化，无需联网。</p></div>
+      <div class="select-row">
+        <button class="ghost-btn" onclick="showSpaceView()">返回</button>
+        <select id="kbSubjectSelect">
+          <option value="考研数学">考研数学</option>
+          <option value="考研408">考研408</option>
+          <option value="考研英语">考研英语</option>
+          <option value="考研政治">考研政治</option>
+        </select>
+        <button class="danger-btn" onclick="clearKb()">清空知识库</button>
+      </div>
+    </div>
+    <div class="feature-grid">
+      <button class="feature-card" onclick="document.getElementById('kbUpload').click()">
+        <div><div class="card-icon">+</div><h3>上传PDF</h3><p id="kbStats">题目数：加载中...</p></div>
+        <span class="primary-btn">选择PDF文件</span>
+      </button>
+      <button class="feature-card" onclick="refreshKbStats()">
+        <div><div class="card-icon">↻</div><h3>刷新统计</h3><p>查看当前知识库索引状态。</p></div>
+        <span class="primary-btn">刷新</span>
+      </button>
+    </div>
+    <div class="panel" style="margin-top:22px;padding:18px">
+      <h3 style="margin-bottom:12px">上传日志</h3>
+      <div id="kbLog" style="color:var(--muted);font-size:13px;line-height:1.8">尚未上传 PDF 文件。</div>
     </div>
   </div>
 </section>

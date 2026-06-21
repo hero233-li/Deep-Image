@@ -407,6 +407,51 @@ window.exportPdf = function(){
   if(!state.conversationId){alert('请先识别图片');return}
   window.open(API + '/api/export/' + state.conversationId, '_blank');
 };
+// ---- Knowledge Base ----
+window.openKbView = function(){setView('kbView');refreshKbStats()};
+window.refreshKbStats = async function(){
+  try{
+    var resp=await fetch(API + '/api/kb/stats');
+    if(!resp.ok) return;
+    var data=await resp.json();
+    var el=document.getElementById('kbStats');
+    if(el) el.textContent='题目数：'+data.total_questions;
+    var s=document.getElementById('kbStatus');
+    if(s && data.total_questions>0){s.textContent='知识库：'+data.total_questions+'题';s.style.display='inline-flex'}
+  }catch(e){}
+};
+window.uploadKbPdf = async function(file){
+  if(!file) return;
+  if(!requireBackend()) return;
+  setLoading(true, '正在提取PDF题目...');
+  var log=document.getElementById('kbLog');
+  if(log) log.innerHTML='上传中：'+file.name+' ('.concat((file.size/1024/1024).toFixed(1),' MB)...');
+  try{
+    var fd=new FormData();
+    fd.append('file', file);
+    fd.append('subject', (document.getElementById('kbSubjectSelect')||{}).value||'考研数学');
+    var resp=await fetch(API + '/api/kb/upload-pdf', {method:'POST', body:fd});
+    if(!resp.ok) throw new Error(await resp.text());
+    var data=await resp.json();
+    if(log) log.innerHTML='入库完成：提取 '+data.questions_extracted+' 题，索引 '+data.questions_indexed+' 题';
+    refreshKbStats();
+  }catch(e){
+    if(log) log.innerHTML='入库失败：'+e.message;
+  }finally{setLoading(false)}
+};
+window.clearKb = async function(){
+  if(!confirm('确认清空知识库？所有已索引的题目将被删除。')) return;
+  try{
+    await fetch(API + '/api/kb', {method:'DELETE'});
+    var el=document.getElementById('kbStats');
+    if(el) el.textContent='题目数：0';
+    var log=document.getElementById('kbLog');
+    if(log) log.textContent='知识库已清空。';
+    var s=document.getElementById('kbStatus');
+    if(s) s.style.display='none';
+  }catch(e){}
+};
+
 window.copyReconstruct = async function(){
   if(!state.reconstructedProblem)return;
   try{await navigator.clipboard.writeText(state.reconstructedProblem);var b=$('copyReconstructBtn');b.textContent='已复制';setTimeout(function(){b.textContent='复制'},1200)}catch(e){alert('复制失败')}
